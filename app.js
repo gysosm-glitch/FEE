@@ -1,4 +1,4 @@
-import { load, save } from "./db.js";
+import { load, save, downloadBackup, backupReminder } from "./db.js";
 
 const OUT_CATS = ["식비", "카페·간식", "교통", "쇼핑", "문화·여가", "통신·구독", "생활", "기타"];
 const IN_CATS = ["아르바이트", "용돈", "기타 수입"];
@@ -25,6 +25,7 @@ function render() {
   $("acct").textContent = `생활비 계좌 ${y}-${FEE.pad(m)}`;
   $("balance").textContent = budget ? won(left) : "예산 미설정";
   $("balance").classList.toggle("neg", left < 0);
+  $("balance").classList.toggle("unset", !budget);
   $("meter").style.width = budget ? `${Math.min(100, (s.out / budget) * 100)}%` : "0";
   $("pbSub").textContent = budget ? `예산 ${won(budget)} 중 ${won(s.out)} 사용 (${Math.round((s.out / budget) * 100)}%)` : "‘예산 설정’을 눌러 이번 달에 쓸 금액을 정하세요.";
 
@@ -62,7 +63,7 @@ function render() {
   $("ledger").innerHTML = `<tr><th>거래일</th><th>적요</th><th class="num">출금</th><th class="num">입금</th><th class="num">남은 예산</th><th></th></tr>` +
     (rows.map((e) => `<tr><td>${md(e.date)}</td><td>${esc(e.category)}${e.memo ? ` <span class="muted">${esc(e.memo)}</span>` : ""}${e.type === "out" && !e.need ? ' <span class="tag">불필요</span>' : ""}</td>
       <td class="num out">${e.type === "out" ? won(e.amount) : ""}</td><td class="num in">${e.type === "in" ? won(e.amount) : ""}</td>
-      <td class="num">${budget ? won(e.bal) : "-"}</td><td><button class="x" data-id="${e.id}" aria-label="삭제">✕</button></td></tr>`).join("")
+      <td class="num">${budget ? won(e.bal) : "-"}</td><td class="acts"><button class="x ed" data-id="${e.id}" aria-label="수정">✎</button><button class="x" data-id="${e.id}" aria-label="삭제">✕</button></td></tr>`).join("")
       || `<tr><td colspan="6" class="muted">아직 거래가 없어요. 위에서 첫 거래를 기록해 보세요.</td></tr>`);
 }
 
@@ -78,16 +79,37 @@ $("form").onsubmit = (e) => {
   const amount = Number(f.get("amount"));
   if (!Number.isInteger(amount) || amount <= 0) return alert("금액은 1원 이상의 정수로 입력하세요.");
   const type = f.get("type");
-  entries.push({ id: Date.now(), date: f.get("date"), type, amount, category: f.get("category"), memo: f.get("memo").trim(), need: type === "out" ? f.has("need") : true });
+  const entry = { id: editing ?? Date.now(), date: f.get("date"), type, amount, category: f.get("category"), memo: f.get("memo").trim(), need: type === "out" ? f.has("need") : true };
+  if (editing === null) entries.push(entry); else entries = entries.map((x) => (x.id === editing ? entry : x));
   save("fee.entries", entries);
   view = f.get("date").slice(0, 7);
-  e.target.amount.value = ""; e.target.memo.value = "";
+  setEditing(null);
   render();
 };
+
+// 수정: 거래를 폼에 불러와 고친 뒤 "수정 저장"
+let editing = null; // 수정 중인 거래 id
+function setEditing(id) {
+  editing = id;
+  const f = $("form");
+  f.classList.toggle("editing", id !== null);
+  $("saveBtn").textContent = id === null ? "거래 기록" : "수정 저장";
+  $("cancelEdit").hidden = id === null;
+  if (id === null) { f.amount.value = ""; f.memo.value = ""; return; }
+  const x = entries.find((e) => e.id === id);
+  f.type.value = x.type; setCats(x.type);
+  f.date.value = x.date; f.amount.value = x.amount; f.category.value = x.category; f.memo.value = x.memo || ""; f.need.checked = x.need;
+  f.scrollIntoView({ behavior: "smooth", block: "center" }); f.amount.focus({ preventScroll: true });
+}
+$("cancelEdit").onclick = () => setEditing(null);
 $("ledger").onclick = (e) => {
   const b = e.target.closest(".x"); if (!b) return;
+  const id = +b.dataset.id;
+  if (b.classList.contains("ed")) return setEditing(id);
   if (!confirm("이 거래를 삭제할까요?")) return;
-  entries = entries.filter((x) => x.id !== +b.dataset.id); save("fee.entries", entries); render();
+  entries = entries.filter((x) => x.id !== id); save("fee.entries", entries);
+  if (editing === id) setEditing(null);
+  render();
 };
 $("editBudget").onclick = () => {
   const v = prompt(`${view.replace("-", "년 ")}월 예산(원)을 입력하세요`, budgets[view] || "");
@@ -98,11 +120,8 @@ $("editBudget").onclick = () => {
 };
 $("prev").onclick = () => { view = FEE.shiftMonth(view, -1); render(); };
 $("next").onclick = () => { view = FEE.shiftMonth(view, 1); render(); };
-$("export").onclick = () => {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify({ entries, budgets }, null, 2)], { type: "application/json" }));
-  a.download = `FEE-backup-${TODAY}.json`; a.click(); URL.revokeObjectURL(a.href);
-};
+const exportAll = () => downloadBackup("FEE", { entries, budgets });
+$("export").onclick = exportAll;
 $("import").onchange = async (e) => {
   const file = e.target.files[0]; e.target.value = "";
   if (!file) return;
@@ -120,3 +139,4 @@ setCats("out");
 entries = load("fee.entries", []);
 budgets = load("fee.budgets", {});
 render();
+backupReminder("FEE", entries.length > 0 || Object.keys(budgets).length > 0, exportAll);
