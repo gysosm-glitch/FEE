@@ -1,4 +1,4 @@
-import { start, load, save } from "./db.js";
+import { load, save } from "./db.js";
 
 const OUT_CATS = ["식비", "카페·간식", "교통", "쇼핑", "문화·여가", "통신·구독", "생활", "기타"];
 const IN_CATS = ["아르바이트", "용돈", "기타 수입"];
@@ -111,15 +111,12 @@ $("import").onchange = async (e) => {
     if (!Array.isArray(d.entries) || !d.entries.every((x) => x.date && x.type && Number.isFinite(x.amount))) throw new Error("형식이 맞지 않아요");
     if (!confirm(`백업의 거래 ${d.entries.length}건으로 지금 기록을 바꿀까요? 현재 기록은 사라져요.`)) return;
     entries = d.entries; budgets = d.budgets || {};
-    await Promise.all([save("fee.entries", entries), save("fee.budgets", budgets)]); render();
+    save("fee.entries", entries); save("fee.budgets", budgets); render();
   } catch (err) { alert("백업 파일을 읽지 못했어요: " + err.message); }
 };
 
 $("form").date.value = TODAY;
 setCats("out");
-start(async (user) => {
-  document.body.classList.toggle("locked", !user);
-  if (!user) return;
-  [entries, budgets] = await Promise.all([load("fee.entries", []), load("fee.budgets", {})]);
-  render();
-}, $("auth"));
+entries = load("fee.entries", []);
+budgets = load("fee.budgets", {});
+render();

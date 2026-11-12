@@ -19,10 +19,6 @@ header h1 span { color: #fff; font-size: 15px; margin-left: 6px; }
 .month { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .month button { background: transparent; color: #fff; border-color: rgba(255,255,255,.3); padding: 2px 10px; }
 
-body.locked main { display: none; }
-.gate { display: none; max-width: 520px; margin: 60px auto; text-align: center; color: var(--sub); }
-body.locked .gate { display: block; }
-
 main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; display: grid; gap: 16px; }
 .muted { color: var(--sub); } .small { font-size: 12px; }
 
