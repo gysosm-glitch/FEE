@@ -82,10 +82,14 @@ function render() {
     ]);
   }
   const endDate = view === TODAY.slice(0, 7) ? TODAY : `${view}-${FEE.daysIn(view)}`;
-  const weeks = FEE.weekly(entries, endDate, 8);
-  lineChart($("weekChart"), weeks.map((x) => `${+x.start.slice(5, 7)}/${+x.start.slice(8)}`), [
-    { name: "지출", cls: "out", values: weeks.map((x) => x.out) },
-  ], budget ? (budget / FEE.daysIn(view)) * 7 : 0, weeks.map((x) => `${md(x.start)} ~ ${md(x.end)}`));
+  const weeks = FEE.weekly(entries, endDate, 8, FEE.WEEK_START);
+  if (!weeks.length) {
+    $("weekChart").innerHTML = `<div class="placeholder">📅 주별 그래프는 <b>11월 16일(월)</b> 주부터 그려져요.<br><span class="muted small">그 전에 쓴 돈도 기록해 두면 일별 지출과 거래내역에서 볼 수 있어요.</span></div>`;
+  } else {
+    lineChart($("weekChart"), weeks.map((x) => `${+x.start.slice(5, 7)}/${+x.start.slice(8)}`), [
+      { name: "지출", cls: "out", values: weeks.map((x) => x.out) },
+    ], budget ? (budget / FEE.daysIn(view)) * 7 : 0, weeks.map((x) => `${md(x.start)} ~ ${md(x.end)}`));
+  }
 
   const n = FEE.daysIn(view);
   const perDay = budget / n;

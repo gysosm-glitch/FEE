@@ -26,6 +26,9 @@ const w = F.weekly(E, "2026-11-13", 2); // 11/13(금) → 11/9 주
 assert.deepStrictEqual(w.map((x) => [x.start, x.out]), [["2026-11-02", 0], ["2026-11-09", 9500]]);
 assert.deepStrictEqual(F.wantsByCat(nov), [["카페·간식", 4500]]);
 assert.strictEqual(F.projection(9000, "2026-11-10", "2026-11"), 27000); // 하루 900원 × 30일
+// 주별은 11/16 주부터: 12/2 기준 최근 8주 중 11/16, 11/23, 11/30만
+assert.deepStrictEqual(F.weekly(E, "2026-12-02", 8, F.WEEK_START).map((x) => x.start), ["2026-11-16", "2026-11-23", "2026-11-30"]);
+assert.strictEqual(F.weekly(E, "2026-11-13", 8, F.WEEK_START).length, 0);
 // 2026년 연습 기록 분리
 const sp = F.splitPractice([...E, { id: 9, date: "2027-01-02", type: "out", amount: 3000, category: "식비", need: true }], { "2026-11": 400000, "2027-01": 500000 });
 assert.deepStrictEqual([sp.old.length, sp.keep.length, Object.keys(sp.oldBudgets), Object.keys(sp.keepBudgets)], [4, 1, ["2026-11"], ["2027-01"]]);

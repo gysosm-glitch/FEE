@@ -48,15 +48,16 @@
     });
   }
 
-  // endDate가 속한 주까지 최근 n주(월~일)의 지출 합계
-  function weekly(entries, endDate, n) {
+  // endDate가 속한 주까지 최근 n주(월~일)의 지출 합계. from(월요일)보다 앞선 주는 뺀다.
+  function weekly(entries, endDate, n, from = "") {
     const last = mondayOf(endDate);
     return Array.from({ length: n }, (_, i) => {
       const start = addDays(last, (i - n + 1) * 7), end = addDays(start, 6);
       const out = entries.filter((e) => e.type === "out" && e.date >= start && e.date <= end).reduce((s, e) => s + e.amount, 0);
       return { start, end, out };
-    });
+    }).filter((w) => w.start >= from);
   }
+  const WEEK_START = "2026-11-16"; // 주별 기록 시작(월요일)
 
   // 줄일 수 있는 돈: "꼭 필요하지 않았던" 지출을 분류별로
   function wantsByCat(list) {
@@ -83,6 +84,6 @@
   // 월별 그래프에 그릴 달: 2027년부터, 보고 있는 해의 1~12월
   const yearMonths = (ym) => { const y = Math.max(+START.slice(0, 4), +ym.slice(0, 4)); return Array.from({ length: 12 }, (_, i) => `${y}-${pad(i + 1)}`); };
 
-  const api = { pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger, addDays, mondayOf, monthly, weekly, wantsByCat, projection, START, splitPractice, yearMonths };
+  const api = { pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger, addDays, mondayOf, monthly, weekly, wantsByCat, projection, START, splitPractice, yearMonths, WEEK_START };
   if (typeof module !== "undefined") module.exports = api; else root.FEE = api;
 })(this);
