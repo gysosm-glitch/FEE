@@ -72,6 +72,17 @@
     return Math.round((spent / day) * daysIn(ym));
   }
 
-  const api = { pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger, addDays, mondayOf, monthly, weekly, wantsByCat, projection };
+  // 본격 사용 시작: 2027년. 그 전 기록은 연습으로 보고 2027년 첫 실행 때 정리한다.
+  const START = "2027-01-01";
+  function splitPractice(entries, budgets) {
+    const keep = entries.filter((e) => e.date >= START), old = entries.filter((e) => e.date < START);
+    const kb = {}, ob = {};
+    for (const [ym, v] of Object.entries(budgets)) (ym >= START.slice(0, 7) ? kb : ob)[ym] = v;
+    return { keep, old, keepBudgets: kb, oldBudgets: ob };
+  }
+  // 월별 그래프에 그릴 달: 2027년부터, 보고 있는 해의 1~12월
+  const yearMonths = (ym) => { const y = Math.max(+START.slice(0, 4), +ym.slice(0, 4)); return Array.from({ length: 12 }, (_, i) => `${y}-${pad(i + 1)}`); };
+
+  const api = { pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger, addDays, mondayOf, monthly, weekly, wantsByCat, projection, START, splitPractice, yearMonths };
   if (typeof module !== "undefined") module.exports = api; else root.FEE = api;
 })(this);

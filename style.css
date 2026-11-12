@@ -157,3 +157,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; display: grid
 .tip[hidden] { display: none; }
 [hidden] { display: none !important; }
 .chart .dl { paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+.notice { max-width: 1180px; margin: 12px auto 0; border-radius: 10px; padding: 10px 16px; font-size: 13px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.notice.trial { background: #eaf4f1; border: 1px dashed var(--teal-2); color: var(--teal); }
+.notice.newyear { background: #fbf6e6; border: 1px solid #e9dcae; }
+.notice button { font-size: 12px; padding: 4px 12px; }
+.placeholder { height: 220px; display: grid; place-content: center; text-align: center; gap: 6px; background: repeating-linear-gradient(0deg, #fff 0 43px, #eef3f1 43px 44px); border-radius: 8px; color: var(--teal); }

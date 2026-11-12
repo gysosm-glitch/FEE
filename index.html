@@ -24,6 +24,10 @@
     <button class="now primary">지금 백업 저장</button><button class="later">나중에</button>
   </div>
 
+  <div class="notice trial" id="trial" hidden role="status"><span>🧪 <b>연습 기간</b>이에요. 12월 31일까지의 기록은 2027년 1월 1일에 자동으로 정리되고, 그때부터 본격적으로 기록해요.</span></div>
+  <div class="notice newyear" id="newYear" hidden role="status"><span>🎉 <b>2027년 새 출발!</b> 2026년 연습 기록 <b id="newYearCount">0</b>건을 정리했어요.</span>
+    <button id="practiceDl">📥 연습 기록 파일로 받기</button><button id="newYearClose">닫기</button></div>
+
   <main>
     <div class="hero">
       <section class="passbook" aria-label="이번 달 예산 잔액">
@@ -75,7 +79,7 @@
 
     <div class="row">
       <section class="card">
-        <h2>📈 월별 수입·지출 <span class="right legend"><span><i class="ln-s out"></i>지출</span><span><i class="ln-s in"></i>수입</span></span></h2>
+        <h2><span id="monthTitle">📈 월별 수입·지출</span> <span class="right legend"><span><i class="ln-s out"></i>지출</span><span><i class="ln-s in"></i>수입</span></span></h2>
         <div class="chart" id="monthChart"></div>
       </section>
       <section class="card">

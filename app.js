@@ -69,12 +69,18 @@ function render() {
        <ul class="cut-list">${wants.map(([c, v]) => `<li><span>${em(c)} ${c}</span><b>${won(v)}</b></li>`).join("")}</ul>`
     : `<p class="muted">👏 이 달에는 "꼭 필요하지 않았던" 지출이 없어요. 거래를 입력할 때 체크를 끄면 여기에 모여요.</p>`;
 
-  // 꺾은선 그래프: 월별(최근 6개월), 주별(최근 8주)
-  const months = FEE.monthly(entries, view, 6);
-  lineChart($("monthChart"), months.map((x) => `${+x.ym.slice(5)}월`), [
-    { name: "지출", cls: "out", values: months.map((x) => x.out) },
-    { name: "수입", cls: "in", values: months.map((x) => x.inc) },
-  ]);
+  // 꺾은선 그래프: 월별은 2027년 1월부터 그 해 1~12월(아직 안 온 달은 비움), 주별은 최근 8주
+  const yms = FEE.yearMonths(view);
+  $("monthTitle").textContent = `📈 ${yms[0].slice(0, 4)}년 월별 수입·지출`;
+  if (TODAY < FEE.START) {
+    $("monthChart").innerHTML = `<div class="placeholder">🗓️ 월별 그래프는 <b>2027년 1월</b>부터 그려져요.<br><span class="muted small">지금(~12/31)은 연습 기간이라 오른쪽 주별 그래프로 확인해 보세요.</span></div>`;
+  } else {
+    const shown = yms.filter((ym) => ym <= TODAY.slice(0, 7)).map((ym) => FEE.summary(FEE.inMonth(entries, ym)));
+    lineChart($("monthChart"), yms.map((ym) => `${+ym.slice(5)}월`), [
+      { name: "지출", cls: "out", values: shown.map((x) => x.out) },
+      { name: "수입", cls: "in", values: shown.map((x) => x.inc) },
+    ]);
+  }
   const endDate = view === TODAY.slice(0, 7) ? TODAY : `${view}-${FEE.daysIn(view)}`;
   const weeks = FEE.weekly(entries, endDate, 8);
   lineChart($("weekChart"), weeks.map((x) => `${+x.start.slice(5, 7)}/${+x.start.slice(8)}`), [
@@ -118,14 +124,15 @@ function lineChart(el, labels, series, ref = 0, tips = labels) {
   const y = (v) => T + (H - T - B) * (1 - v / top);
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.map((s) => s.name).join("·")} 꺾은선 그래프">`;
   for (let g = 0; g <= 4; g++) svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(g * step)}" y2="${y(g * step)}"/><text class="ax" x="${L - 6}" y="${y(g * step) + 4}" text-anchor="end">${short(g * step)}</text>`;
-  labels.forEach((l, i) => (svg += `<text class="ax" x="${x(i)}" y="${H - 8}" text-anchor="middle">${l}</text>`));
+  const every = Math.ceil((labels.length * 38) / (W - L - R)); // 좁은 화면에서는 라벨을 건너뛰어 겹치지 않게
+  labels.forEach((l, i) => { if ((labels.length - 1 - i) % every === 0) svg += `<text class="ax" x="${x(i)}" y="${H - 8}" text-anchor="middle">${l}</text>`; });
   if (ref) svg += `<line class="ref" x1="${L}" x2="${W - R}" y1="${y(ref)}" y2="${y(ref)}"/>`;
   svg += `<line class="cross" id="${el.id}-x" y1="${T}" y2="${H - B}" x1="-10" x2="-10"/>`;
   for (const s of series) {
     svg += `<polyline class="ln ${s.cls}" points="${s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ")}"/>`;
     svg += s.values.map((v, i) => `<circle class="pt ${s.cls}" cx="${x(i)}" cy="${y(v)}" r="4"/>`).join("");
     const li = s.values.length - 1;
-    if (s.values[li]) svg += `<text class="dl" x="${x(li) - 6}" y="${y(s.values[li]) - 9}" text-anchor="end">${short(s.values[li])}</text>`;
+    if (s.values[li]) svg += `<text class="dl" x="${li ? x(li) - 6 : x(li) + 8}" y="${Math.max(T + 10, y(s.values[li]) - 9)}" text-anchor="${li ? "end" : "start"}">${short(s.values[li])}</text>`;
   }
   const band = (W - L - R) / Math.max(1, labels.length - 1);
   labels.forEach((_, i) => (svg += `<rect class="hit" data-i="${i}" x="${x(i) - band / 2}" y="${T}" width="${band}" height="${H - T - B}"/>`));
@@ -136,7 +143,7 @@ function lineChart(el, labels, series, ref = 0, tips = labels) {
     const r = e.target.closest(".hit"); if (!r) return;
     const i = +r.dataset.i;
     cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i));
-    tip.innerHTML = `<b>${tips[i]}</b>` + series.map((s) => `<div><i class="ln-s ${s.cls}"></i>${s.name} <b>${won(s.values[i])}</b></div>`).join("") + (ref ? `<div class="muted">주간 예산 ${won(ref)}</div>` : "");
+    tip.innerHTML = `<b>${tips[i]}</b>` + series.map((s) => `<div><i class="ln-s ${s.cls}"></i>${s.name} <b>${s.values[i] == null ? "아직 기록 전" : won(s.values[i])}</b></div>`).join("") + (ref ? `<div class="muted">주간 예산 ${won(ref)}</div>` : "");
     tip.hidden = false;
     tip.style.left = `${Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8)}px`;
     tip.style.top = `${e.clientY + 14}px`;
@@ -210,6 +217,26 @@ $("form").date.value = TODAY;
 setCats("out");
 entries = load("fee.entries", []);
 budgets = load("fee.budgets", {});
+
+// 2027년 첫 실행: 2026년 연습 기록을 화면에서 정리한다. 지우기 전에 사본을 따로 보관해 파일로 받을 수 있게 한다.
+if (TODAY >= FEE.START) {
+  const sp = FEE.splitPractice(entries, budgets);
+  if (sp.old.length || Object.keys(sp.oldBudgets).length) {
+    const prevArc = load("fee.practice", { entries: [], budgets: {} });
+    save("fee.practice", { entries: [...prevArc.entries, ...sp.old], budgets: { ...prevArc.budgets, ...sp.oldBudgets } });
+    entries = sp.keep; budgets = sp.keepBudgets;
+    save("fee.entries", entries); save("fee.budgets", budgets);
+    save("fee.practiceNotice", true);
+  }
+  if (load("fee.practiceNotice", false)) {
+    $("newYear").hidden = false;
+    $("newYearCount").textContent = load("fee.practice", { entries: [] }).entries.length;
+    $("practiceDl").onclick = () => downloadBackup("FEE-2026-연습기록", load("fee.practice", {}));
+    $("newYearClose").onclick = () => { $("newYear").hidden = true; save("fee.practiceNotice", false); };
+  }
+} else {
+  $("trial").hidden = false;
+}
 render();
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 200); });
 backupReminder("FEE", entries.length > 0 || Object.keys(budgets).length > 0, exportAll);
