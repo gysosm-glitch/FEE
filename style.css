@@ -106,3 +106,54 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; display: grid
 .backup-bar[hidden] { display: none; }
 .backup-bar button { font-size: 12px; padding: 4px 12px; }
 .balance.unset { font-size: 26px; }
+
+/* ===== 수입·지출 크게 / 분야 / 줄일 돈 / 꺾은선 ===== */
+.flow { grid-column: span 2; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.io { padding: 16px 18px; display: grid; gap: 2px; align-content: start; }
+.io + .io { border-left: 1px solid var(--line); }
+.io span { font-size: 13px; color: var(--sub); }
+.io b { font: 800 26px/1.2 "Nanum Myeongjo", serif; font-variant-numeric: tabular-nums; }
+.io small { font-size: 12px; color: var(--sub); }
+.io.in b { color: var(--in); } .io.out b { color: var(--out); } .io.net b { color: var(--teal); } .io.net b.neg { color: var(--out); }
+.today-cash { align-items: center; }
+.today-cash .big { font: 800 28px "Nanum Myeongjo", serif; color: var(--teal); }
+@media (max-width: 860px) { .flow { grid-column: auto; grid-template-columns: 1fr; } .io + .io { border-left: 0; border-top: 1px solid var(--line); } }
+
+.cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.cats label { cursor: pointer; }
+.cats input { position: absolute; opacity: 0; }
+.cats span { display: inline-block; padding: 5px 11px; border: 1px solid var(--line); border-radius: 16px; font-size: 13px; background: #fff; }
+.cats input:checked + span { background: var(--teal); border-color: var(--teal); color: #fff; font-weight: 700; }
+.cats input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.bar { grid-template-columns: 110px 1fr 150px; }
+.bar .cn { white-space: nowrap; }
+.bar .num small { color: var(--sub); font-size: 11px; display: block; }
+
+.save-card { background: linear-gradient(0deg, #fff, #fff), var(--card); border-left: 4px solid var(--gold); }
+.cut { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 20px; align-items: start; }
+.cut-total { display: grid; gap: 2px; }
+.cut-total span { font-size: 13px; color: var(--sub); }
+.cut-total b { font: 800 30px "Nanum Myeongjo", serif; color: var(--out); }
+.cut-total small { color: var(--sub); font-size: 12px; }
+.cut-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.cut-list li { display: flex; justify-content: space-between; border: 1px dashed #ecc5c0; background: #fdf6f5; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+@media (max-width: 700px) { .cut { grid-template-columns: 1fr; } }
+
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: #e8eeec; stroke-width: 1; }
+.chart .ax { fill: var(--sub); font-size: 11px; }
+.chart .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .ln.out { stroke: var(--out); } .chart .ln.in { stroke: var(--in); }
+.chart .pt { stroke: #fff; stroke-width: 2; }
+.chart .pt.out { fill: var(--out); } .chart .pt.in { fill: var(--in); }
+.chart .dl { fill: var(--ink); font-size: 11px; font-weight: 700; }
+.chart .ref { stroke: var(--gold); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .cross { stroke: #b9c6c2; stroke-width: 1; }
+.chart .hit { fill: transparent; }
+.ln-s { display: inline-block; width: 16px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+.ln-s.out { border-color: var(--out); } .ln-s.in { border-color: var(--in); }
+.tip { position: fixed; z-index: 10; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(12, 74, 67, .15); pointer-events: none; display: grid; gap: 3px; }
+.tip[hidden] { display: none; }
+[hidden] { display: none !important; }
+.chart .dl { paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }

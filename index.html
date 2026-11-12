@@ -15,69 +15,90 @@
 <body>
   <header>
     <div class="wrap">
-      <h1>FEE <span>생활비 통장</span></h1>
+      <h1>🏦 FEE <span>생활비 통장</span></h1>
       <nav class="month"><button id="prev" aria-label="이전 달">‹</button><b id="month"></b><button id="next" aria-label="다음 달">›</button></nav>
     </div>
   </header>
   <div class="backup-bar" id="backupBar" hidden role="status">
-    이번 달 백업을 아직 저장하지 않았어요. 한 번 눌러 백업 파일을 저장해 두세요.
+    💾 이번 달 백업을 아직 저장하지 않았어요. 한 번 눌러 백업 파일을 저장해 두세요.
     <button class="now primary">지금 백업 저장</button><button class="later">나중에</button>
   </div>
 
   <main>
     <div class="hero">
       <section class="passbook" aria-label="이번 달 예산 잔액">
-        <div class="pb-top"><span id="acct"></span><button id="editBudget" class="ghost small">예산 설정</button></div>
-        <p class="pb-label">이번 달 남은 예산</p>
+        <div class="pb-top"><span id="acct"></span><button id="editBudget" class="ghost small">✏️ 예산 설정</button></div>
+        <p class="pb-label">💳 이번 달 남은 예산</p>
         <p class="balance" id="balance"></p>
         <div class="meter"><i id="meter"></i></div>
         <p class="pb-sub" id="pbSub"></p>
       </section>
-      <section class="today-cash">
-        <p class="muted">오늘 쓸 수 있는 돈</p>
-        <p class="big" id="allow"></p>
-        <p class="muted small" id="allowNote"></p>
+      <section class="flow">
+        <div class="io in"><span>💵 이번 달 수입</span><b id="incTotal"></b><small id="incNote"></small></div>
+        <div class="io out"><span>💸 이번 달 지출</span><b id="outTotal"></b><small id="outNote"></small></div>
+        <div class="io net"><span>🐷 수입 − 지출</span><b id="netTotal"></b><small id="netNote"></small></div>
       </section>
-      <section class="stats" id="stats"></section>
+      <section class="today-cash">
+        <span class="muted">☀️ 오늘 쓸 수 있는 돈</span>
+        <b class="big" id="allow"></b>
+        <span class="muted small" id="allowNote"></span>
+      </section>
     </div>
 
     <div class="row">
       <section class="card">
-        <h2>거래 입력</h2>
+        <h2>✍️ 거래 입력</h2>
         <form id="form" class="form">
           <div class="seg full" role="radiogroup" aria-label="거래 종류">
-            <label><input type="radio" name="type" value="out" checked><span>출금 (지출)</span></label>
-            <label><input type="radio" name="type" value="in"><span>입금 (수입)</span></label>
+            <label><input type="radio" name="type" value="out" checked><span>💸 출금 (지출)</span></label>
+            <label><input type="radio" name="type" value="in"><span>💵 입금 (수입)</span></label>
           </div>
           <input name="date" type="date" required aria-label="날짜">
           <input name="amount" type="number" inputmode="numeric" min="1" step="1" placeholder="금액 (원)" required aria-label="금액">
-          <select name="category" id="cat" aria-label="분류"></select>
-          <input name="memo" placeholder="적요 (예: 학식, 버스)" maxlength="40" aria-label="적요">
-          <label class="need full" id="needRow"><input type="checkbox" name="need" checked> 꼭 필요한 지출이었어요</label>
+          <div class="cats full" id="cats" role="radiogroup" aria-label="분야"></div>
+          <input class="full" name="memo" placeholder="적요 (예: 학식, 버스)" maxlength="40" aria-label="적요">
+          <label class="need full" id="needRow"><input type="checkbox" name="need" checked> ✅ 꼭 필요한 지출이었어요 <span class="muted small">(체크를 끄면 "줄일 수 있는 돈"에 모여요)</span></label>
           <button class="primary full" id="saveBtn">거래 기록</button>
           <button type="button" class="full" id="cancelEdit" hidden>수정 취소</button>
         </form>
       </section>
       <section class="card">
-        <h2>분류별 지출 <span class="right muted small" id="catTotal"></span></h2>
+        <h2>🧾 분야별 지출 <span class="right muted small" id="catTotal"></span></h2>
         <div class="bars" id="bars"></div>
       </section>
     </div>
 
+    <section class="card save-card">
+      <h2>✂️ 앞으로 줄일 수 있는 돈 <span class="right muted small" id="cutNote"></span></h2>
+      <div class="cut" id="cut"></div>
+    </section>
+
+    <div class="row">
+      <section class="card">
+        <h2>📈 월별 수입·지출 <span class="right legend"><span><i class="ln-s out"></i>지출</span><span><i class="ln-s in"></i>수입</span></span></h2>
+        <div class="chart" id="monthChart"></div>
+      </section>
+      <section class="card">
+        <h2>📉 주별 지출 <span class="right legend"><span><i class="ln-s out"></i>지출</span><span><i class="ln"></i>주간 예산</span></span></h2>
+        <div class="chart" id="weekChart"></div>
+      </section>
+    </div>
+
     <section class="card">
-      <h2>일별 지출 <span class="right legend"><span><i class="sw ok"></i>하루 예산 이내</span><span><i class="sw over"></i>초과</span><span><i class="ln"></i>하루 예산</span></span></h2>
+      <h2>📅 일별 지출 <span class="right legend"><span><i class="sw ok"></i>하루 예산 이내</span><span><i class="sw over"></i>초과</span><span><i class="ln"></i>하루 예산</span></span></h2>
       <div class="daily" id="daily"></div>
       <div class="days" id="days"></div>
     </section>
 
     <section class="card">
-      <h2>거래내역 <span class="right toolbar">
-        <button id="export">백업 파일 저장</button>
-        <label class="btn">백업 불러오기<input type="file" id="import" accept="application/json" hidden></label>
+      <h2>📒 거래내역 <span class="right toolbar">
+        <button id="export">💾 백업 파일 저장</button>
+        <label class="btn">📂 백업 불러오기<input type="file" id="import" accept="application/json" hidden></label>
       </span></h2>
       <div class="scroll"><table class="ledger" id="ledger"></table></div>
     </section>
   </main>
+  <div class="tip" id="tip" hidden></div>
   <script src="logic.js"></script>
   <script type="module" src="app.js"></script>
 </body>

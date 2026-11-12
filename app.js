@@ -1,7 +1,13 @@
 import { load, save, downloadBackup, backupReminder } from "./db.js";
 
+const EMOJI = {
+  식비: "🍚", "카페·간식": "☕", 교통: "🚌", 쇼핑: "🛍️", "문화·여가": "🎬", "통신·구독": "📱", 생활: "🧴", 기타: "📦",
+  아르바이트: "💼", 용돈: "🎁", "기타 수입": "💰",
+};
 const OUT_CATS = ["식비", "카페·간식", "교통", "쇼핑", "문화·여가", "통신·구독", "생활", "기타"];
 const IN_CATS = ["아르바이트", "용돈", "기타 수입"];
+const em = (c) => EMOJI[c] || "📦";
+const short = (n) => (n >= 10000 ? `${+(n / 10000).toFixed(1)}만` : n.toLocaleString("ko-KR"));
 const TODAY = FEE.fmt(new Date());
 const DOW = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -34,18 +40,46 @@ function render() {
   $("allow").textContent = budget ? won(allow) : "-";
   $("allowNote").textContent = budget ? (view === TODAY.slice(0, 7) ? `오늘 ${won(spentToday)} 썼어요` : "이 달의 하루 평균 한도") : "예산을 정하면 계산돼요";
 
-  const wantsPct = s.out ? Math.round((s.wants / s.out) * 100) : 0;
-  $("stats").innerHTML = [
-    ["이번 달 지출", won(s.out), `${list.filter((e) => e.type === "out").length}건`],
-    ["안 써도 됐던 지출", won(s.wants), `지출의 ${wantsPct}%`],
-    ["이번 달 수입", won(s.inc), s.inc - s.out >= 0 ? `수입 − 지출 ${won(s.inc - s.out)}` : `수입보다 ${won(s.out - s.inc)} 더 씀`],
-  ].map(([l, v, n]) => `<div class="stat"><span class="muted small">${l}</span><b>${v}</b><span class="muted small">${n}</span></div>`).join("");
+  // 이번 달 수입·지출 크게
+  const prev = FEE.summary(FEE.inMonth(entries, FEE.shiftMonth(view, -1)));
+  const diff = (a, b) => (b ? `지난달보다 ${a >= b ? "▲" : "▼"} ${won(Math.abs(a - b))}` : "지난달 기록 없음");
+  $("incTotal").textContent = won(s.inc);
+  $("incNote").textContent = `${list.filter((e) => e.type === "in").length}건 · ${diff(s.inc, prev.inc)}`;
+  $("outTotal").textContent = won(s.out);
+  $("outNote").textContent = `${list.filter((e) => e.type === "out").length}건 · ${diff(s.out, prev.out)}`;
+  const net = s.inc - s.out;
+  $("netTotal").textContent = `${net < 0 ? "−" : ""}${won(Math.abs(net))}`;
+  $("netTotal").classList.toggle("neg", net < 0);
+  $("netNote").textContent = net >= 0 ? "이번 달 모은 돈 🎉" : "수입보다 더 썼어요";
 
+  // 분야별 지출
   const cats = Object.entries(s.byCat).sort((a, b) => b[1] - a[1]);
   const max = cats[0]?.[1] || 1;
-  $("catTotal").textContent = won(s.out);
-  $("bars").innerHTML = cats.map(([c, v]) => `<div class="bar"><span>${c}</span><div class="track"><div class="fill" style="width:${(v / max) * 100}%"></div></div><span class="num">${won(v)}</span></div>`).join("")
-    || `<p class="muted">이 달의 지출 기록이 없어요.</p>`;
+  const cnt = (c) => list.filter((e) => e.type === "out" && e.category === c).length;
+  $("catTotal").textContent = `총 ${won(s.out)}`;
+  $("bars").innerHTML = cats.map(([c, v]) => `<div class="bar"><span class="cn">${em(c)} ${c}</span><div class="track"><div class="fill" style="width:${(v / max) * 100}%"></div></div><span class="num">${won(v)} <small>${Math.round((v / s.out) * 100)}% · ${cnt(c)}건</small></span></div>`).join("")
+    || `<p class="muted">🫙 이 달의 지출 기록이 없어요.</p>`;
+
+  // 앞으로 줄일 수 있는 돈
+  const wants = FEE.wantsByCat(list);
+  const proj = FEE.projection(s.out, TODAY, view);
+  $("cutNote").textContent = view === TODAY.slice(0, 7) && s.out ? `이 속도면 월말 지출 약 ${won(proj)}${budget ? (proj > budget ? ` (예산보다 ${won(proj - budget)} 초과 ⚠️)` : " (예산 안 👍)") : ""}` : "";
+  $("cut").innerHTML = s.wants
+    ? `<div class="cut-total"><span>"꼭 필요하진 않았던" 지출</span><b>${won(s.wants)}</b><small>지출의 ${Math.round((s.wants / s.out) * 100)}% · 이만큼 아끼면 1년에 약 ${won(s.wants * 12)}</small></div>
+       <ul class="cut-list">${wants.map(([c, v]) => `<li><span>${em(c)} ${c}</span><b>${won(v)}</b></li>`).join("")}</ul>`
+    : `<p class="muted">👏 이 달에는 "꼭 필요하지 않았던" 지출이 없어요. 거래를 입력할 때 체크를 끄면 여기에 모여요.</p>`;
+
+  // 꺾은선 그래프: 월별(최근 6개월), 주별(최근 8주)
+  const months = FEE.monthly(entries, view, 6);
+  lineChart($("monthChart"), months.map((x) => `${+x.ym.slice(5)}월`), [
+    { name: "지출", cls: "out", values: months.map((x) => x.out) },
+    { name: "수입", cls: "in", values: months.map((x) => x.inc) },
+  ]);
+  const endDate = view === TODAY.slice(0, 7) ? TODAY : `${view}-${FEE.daysIn(view)}`;
+  const weeks = FEE.weekly(entries, endDate, 8);
+  lineChart($("weekChart"), weeks.map((x) => `${+x.start.slice(5, 7)}/${+x.start.slice(8)}`), [
+    { name: "지출", cls: "out", values: weeks.map((x) => x.out) },
+  ], budget ? (budget / FEE.daysIn(view)) * 7 : 0, weeks.map((x) => `${md(x.start)} ~ ${md(x.end)}`));
 
   const n = FEE.daysIn(view);
   const perDay = budget / n;
@@ -61,15 +95,53 @@ function render() {
 
   const rows = FEE.ledger(list, budget).reverse();
   $("ledger").innerHTML = `<tr><th>거래일</th><th>적요</th><th class="num">출금</th><th class="num">입금</th><th class="num">남은 예산</th><th></th></tr>` +
-    (rows.map((e) => `<tr><td>${md(e.date)}</td><td>${esc(e.category)}${e.memo ? ` <span class="muted">${esc(e.memo)}</span>` : ""}${e.type === "out" && !e.need ? ' <span class="tag">불필요</span>' : ""}</td>
+    (rows.map((e) => `<tr><td>${md(e.date)}</td><td>${em(e.category)} ${esc(e.category)}${e.memo ? ` <span class="muted">${esc(e.memo)}</span>` : ""}${e.type === "out" && !e.need ? ' <span class="tag">불필요</span>' : ""}</td>
       <td class="num out">${e.type === "out" ? won(e.amount) : ""}</td><td class="num in">${e.type === "in" ? won(e.amount) : ""}</td>
       <td class="num">${budget ? won(e.bal) : "-"}</td><td class="acts"><button class="x ed" data-id="${e.id}" aria-label="수정">✎</button><button class="x" data-id="${e.id}" aria-label="삭제">✕</button></td></tr>`).join("")
       || `<tr><td colspan="6" class="muted">아직 거래가 없어요. 위에서 첫 거래를 기록해 보세요.</td></tr>`);
 }
 
 function setCats(type) {
-  $("cat").innerHTML = (type === "in" ? IN_CATS : OUT_CATS).map((c) => `<option>${c}</option>`).join("");
+  $("cats").innerHTML = (type === "in" ? IN_CATS : OUT_CATS).map((c, i) =>
+    `<label><input type="radio" name="category" value="${c}"${i === 0 ? " checked" : ""} required><span>${em(c)} ${c}</span></label>`).join("");
   $("needRow").hidden = type === "in";
+}
+
+// 꺾은선 그래프(SVG). 축은 하나, 선 2px, 점 8px, 마우스를 올리면 해당 시점 값 표시.
+// ref: 점선 기준선(예: 주간 예산), tips: 툴팁 제목(없으면 x 라벨)
+function lineChart(el, labels, series, ref = 0, tips = labels) {
+  const W = Math.max(300, Math.round(el.clientWidth) || 560), H = 220, L = 46, R = 14, T = 14, B = 28; // 화면 폭에 맞춰 글자 크기 유지
+  const all = series.flatMap((s) => s.values).concat(ref);
+  const step = (() => { const m = Math.max(...all, 1) / 4, p = 10 ** Math.floor(Math.log10(m)); return Math.ceil(m / p) * p; })();
+  const top = step * 4;
+  const x = (i) => L + (labels.length === 1 ? (W - L - R) / 2 : (i * (W - L - R)) / (labels.length - 1));
+  const y = (v) => T + (H - T - B) * (1 - v / top);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.map((s) => s.name).join("·")} 꺾은선 그래프">`;
+  for (let g = 0; g <= 4; g++) svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(g * step)}" y2="${y(g * step)}"/><text class="ax" x="${L - 6}" y="${y(g * step) + 4}" text-anchor="end">${short(g * step)}</text>`;
+  labels.forEach((l, i) => (svg += `<text class="ax" x="${x(i)}" y="${H - 8}" text-anchor="middle">${l}</text>`));
+  if (ref) svg += `<line class="ref" x1="${L}" x2="${W - R}" y1="${y(ref)}" y2="${y(ref)}"/>`;
+  svg += `<line class="cross" id="${el.id}-x" y1="${T}" y2="${H - B}" x1="-10" x2="-10"/>`;
+  for (const s of series) {
+    svg += `<polyline class="ln ${s.cls}" points="${s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ")}"/>`;
+    svg += s.values.map((v, i) => `<circle class="pt ${s.cls}" cx="${x(i)}" cy="${y(v)}" r="4"/>`).join("");
+    const li = s.values.length - 1;
+    if (s.values[li]) svg += `<text class="dl" x="${x(li) - 6}" y="${y(s.values[li]) - 9}" text-anchor="end">${short(s.values[li])}</text>`;
+  }
+  const band = (W - L - R) / Math.max(1, labels.length - 1);
+  labels.forEach((_, i) => (svg += `<rect class="hit" data-i="${i}" x="${x(i) - band / 2}" y="${T}" width="${band}" height="${H - T - B}"/>`));
+  el.innerHTML = svg + "</svg>";
+
+  const tip = $("tip"), cross = $(`${el.id}-x`);
+  el.onmousemove = (e) => {
+    const r = e.target.closest(".hit"); if (!r) return;
+    const i = +r.dataset.i;
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i));
+    tip.innerHTML = `<b>${tips[i]}</b>` + series.map((s) => `<div><i class="ln-s ${s.cls}"></i>${s.name} <b>${won(s.values[i])}</b></div>`).join("") + (ref ? `<div class="muted">주간 예산 ${won(ref)}</div>` : "");
+    tip.hidden = false;
+    tip.style.left = `${Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8)}px`;
+    tip.style.top = `${e.clientY + 14}px`;
+  };
+  el.onmouseleave = () => { tip.hidden = true; cross.setAttribute("x1", -10); cross.setAttribute("x2", -10); };
 }
 
 $("form").onchange = (e) => { if (e.target.name === "type") setCats(e.target.value); };
@@ -139,4 +211,5 @@ setCats("out");
 entries = load("fee.entries", []);
 budgets = load("fee.budgets", {});
 render();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 200); });
 backupReminder("FEE", entries.length > 0 || Object.keys(budgets).length > 0, exportAll);

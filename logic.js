@@ -36,6 +36,42 @@
       .map((e) => ({ ...e, bal: e.type === "out" ? (bal -= e.amount) : bal }));
   }
 
-  const api = { pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger };
+  const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return fmt(d); };
+  const mondayOf = (s) => addDays(s, -((parse(s).getDay() + 6) % 7));
+
+  // endYm까지 최근 n개월의 수입·지출 합계 (오래된 달부터)
+  function monthly(entries, endYm, n) {
+    return Array.from({ length: n }, (_, i) => {
+      const ym = shiftMonth(endYm, i - n + 1);
+      const s = summary(inMonth(entries, ym));
+      return { ym, out: s.out, inc: s.inc };
+    });
+  }
+
+  // endDate가 속한 주까지 최근 n주(월~일)의 지출 합계
+  function weekly(entries, endDate, n) {
+    const last = mondayOf(endDate);
+    return Array.from({ length: n }, (_, i) => {
+      const start = addDays(last, (i - n + 1) * 7), end = addDays(start, 6);
+      const out = entries.filter((e) => e.type === "out" && e.date >= start && e.date <= end).reduce((s, e) => s + e.amount, 0);
+      return { start, end, out };
+    });
+  }
+
+  // 줄일 수 있는 돈: "꼭 필요하지 않았던" 지출을 분류별로
+  function wantsByCat(list) {
+    const m = {};
+    for (const e of list) if (e.type === "out" && !e.need) m[e.category] = (m[e.category] || 0) + e.amount;
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }
+
+  // 지금 속도로 쓰면 월말까지 예상 지출
+  function projection(spent, today, ym) {
+    if (ym !== today.slice(0, 7)) return spent;
+    const day = parse(today).getDate();
+    return Math.round((spent / day) * daysIn(ym));
+  }
+
+  const api = { pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger, addDays, mondayOf, monthly, weekly, wantsByCat, projection };
   if (typeof module !== "undefined") module.exports = api; else root.FEE = api;
 })(this);

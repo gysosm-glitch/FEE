@@ -19,4 +19,11 @@ assert.strictEqual(F.allowance(100000, 9500, "2026-11-13", "2026-11"), 5027);
 assert.strictEqual(F.allowance(100000, 0, "2026-11-13", "2026-10"), 0);
 assert.strictEqual(F.allowance(31000, 0, "2026-11-13", "2026-12"), 1000);
 assert.deepStrictEqual(F.ledger(nov, 100000).map((e) => e.bal), [95000, 90500, 90500]);
+// 월별·주별 합계
+const m = F.monthly(E, "2026-12", 3);
+assert.deepStrictEqual(m.map((x) => [x.ym, x.out, x.inc]), [["2026-10", 0, 0], ["2026-11", 9500, 300000], ["2026-12", 1000, 0]]);
+const w = F.weekly(E, "2026-11-13", 2); // 11/13(금) → 11/9 주
+assert.deepStrictEqual(w.map((x) => [x.start, x.out]), [["2026-11-02", 0], ["2026-11-09", 9500]]);
+assert.deepStrictEqual(F.wantsByCat(nov), [["카페·간식", 4500]]);
+assert.strictEqual(F.projection(9000, "2026-11-10", "2026-11"), 27000); // 하루 900원 × 30일
 console.log("ok");
