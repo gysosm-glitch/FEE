@@ -35,6 +35,7 @@
   <main id="screens">
     <!-- 🏠 홈 -->
     <div class="screen" data-screen="home">
+    <section class="hello" id="hello"></section>
     <div class="hero">
       <section class="passbook" aria-label="이번 달 예산 잔액">
         <div class="pb-top"><span id="acct"></span><button id="editBudget" class="ghost small">✏️ 예산 설정</button></div>
@@ -54,10 +55,22 @@
         <span class="muted small" id="allowNote"></span>
       </section>
     </div>
+    <div class="row">
+      <section class="card insight" id="insight"></section>
+      <section class="card">
+        <h2>🧾 최근 거래 <button class="right small linkbtn" data-go="list">전체 보기 ›</button></h2>
+        <ul class="recent" id="recent"></ul>
+      </section>
+    </div>
     </div>
 
     <!-- ✍️ 기록 -->
     <div class="screen" data-screen="add" hidden>
+    <section class="card">
+      <h2>📆 <span id="catMonth"></span> 분야별 지출 <span class="right muted small" id="catSum"></span></h2>
+      <div class="catgrid" id="catGrid"></div>
+      <p class="muted small hint">칸을 누르면 아래 입력칸에서 그 분류가 바로 선택돼요. 위쪽 ‹ › 로 다른 달도 볼 수 있어요.</p>
+    </section>
     <section class="card">
         <h2>✍️ 거래 입력</h2>
         <form id="form" class="form">

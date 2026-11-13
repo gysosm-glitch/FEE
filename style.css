@@ -175,3 +175,38 @@ main#screens { padding-bottom: 96px; }
 .tabbar button { flex: 1; border: none; background: none; border-radius: 16px; padding: 6px 4px; font-size: 12px; color: var(--sub); display: grid; justify-items: center; gap: 1px; box-shadow: none; }
 .tabbar button span { font-size: 20px; line-height: 1.1; }
 .tabbar button[aria-current=page] { background: var(--teal); color: #fff; font-weight: 700; }
+
+/* 🏠 홈 꾸미기 */
+.hello { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 0; background: linear-gradient(135deg, #fff, #f3f8f6); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.hello > div { padding: 14px 18px; display: grid; gap: 2px; align-content: center; }
+.hello > div + div { border-left: 1px solid var(--line); }
+.hello .hi b { font: 800 20px "Nanum Myeongjo", serif; color: var(--teal); }
+.hello .hi span, .hello .hstat span { font-size: 12px; color: var(--sub); }
+.hello .hstat b { font-size: 18px; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .hello { grid-template-columns: 1fr 1fr; } .hello .hi { grid-column: 1 / -1; } .hello > div + div { border-left: 0; border-top: 1px solid var(--line); } .hello .hstat:nth-child(3) { border-left: 1px solid var(--line); } }
+.insight .topcat { display: flex; gap: 14px; align-items: center; background: #fbf6e6; border: 1px solid #efe1b5; border-radius: 12px; padding: 12px 14px; }
+.insight .topcat .ce { font-size: 34px; }
+.insight .topcat div { display: grid; }
+.insight .topcat b { font: 800 22px "Nanum Myeongjo", serif; color: var(--ink); }
+.insight .topcat small { color: var(--sub); font-size: 12px; }
+.insight .tip { margin: 12px 0 0; background: #eaf4f1; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--teal); }
+.recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.recent li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #f8fbfa; }
+.recent .ce { font-size: 22px; }
+.recent li > div { flex: 1; min-width: 0; display: grid; }
+.recent li > div b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent small { font-size: 11px; color: var(--sub); }
+.recent b.out { color: var(--out); font-variant-numeric: tabular-nums; } .recent b.in { color: var(--in); font-variant-numeric: tabular-nums; }
+.linkbtn { border: none; background: none; color: var(--teal); padding: 0; font-size: 12px; box-shadow: none; }
+.hint { margin: 10px 0 0; }
+
+/* ✍️ 기록: 분야별 지출 칸 */
+.catgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.cattile { position: relative; overflow: hidden; display: grid; gap: 1px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+.cattile::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: var(--w); background: var(--teal-2); }
+.cattile .ce { font-size: 20px; }
+.cattile .cl { font-size: 13px; color: var(--sub); }
+.cattile b { font: 800 18px "Nanum Myeongjo", serif; font-variant-numeric: tabular-nums; }
+.cattile small { font-size: 11px; color: var(--sub); }
+.cattile.zero b { color: #a9b8b4; }
+.cattile:hover { border-color: var(--teal-2); }

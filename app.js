@@ -8,6 +8,7 @@ const OUT_CATS = ["생활", "여가", "구독", "쇼핑", "교통", "식비", "�
 const OLD_CATS = { "카페·간식": "식비", "문화·여가": "여가", "통신·구독": "구독" }; // 예전 분류 → 새 분류
 const IN_CATS = ["아르바이트", "용돈", "기타 수입"];
 const em = (c) => EMOJI[c] || "📦";
+const catLabel = (c) => (c === "식비" || !OUT_CATS.includes(c) ? c : `${c}비`); // 생활비·여가비·구독비…
 const short = (n) => (n >= 10000 ? `${+(n / 10000).toFixed(1)}만` : n.toLocaleString("ko-KR"));
 const TODAY = FEE.fmt(new Date());
 const DOW = ["일", "월", "화", "수", "목", "금", "토"];
@@ -43,6 +44,38 @@ function render() {
 
   // 이번 달 수입·지출 크게
   const prev = FEE.summary(FEE.inMonth(entries, FEE.shiftMonth(view, -1)));
+
+  // ✍️ 기록 화면: 이 달 분야별 지출(생활비·여가비…)
+  const cntOf = (c) => list.filter((e) => e.type === "out" && e.category === c).length;
+  $("catMonth").textContent = `${m}월`;
+  $("catSum").textContent = `총 ${won(s.out)}`;
+  $("catGrid").innerHTML = OUT_CATS.map((c) => {
+    const v = s.byCat[c] || 0, pv = prev.byCat[c] || 0;
+    const vs = v || pv ? ` · 지난달 ${v >= pv ? "▲" : "▼"}${won(Math.abs(v - pv))}` : "";
+    return `<button type="button" class="cattile${v ? "" : " zero"}" data-cat="${c}" style="--w:${s.out ? Math.round((v / s.out) * 100) : 0}%">
+      <span class="ce">${em(c)}</span><span class="cl">${catLabel(c)}</span><b>${won(v)}</b>
+      <small>${cntOf(c)}건${s.out ? ` · ${Math.round((v / s.out) * 100)}%` : ""}${vs}</small></button>`;
+  }).join("");
+
+  // 🏠 홈: 인사·남은 날·거래 수
+  const now = new Date(), hr = now.getHours();
+  const greet = hr < 6 ? "늦은 밤이에요 🌙" : hr < 12 ? "좋은 아침이에요 ☀️" : hr < 18 ? "좋은 오후예요 🌤️" : "오늘 하루 수고했어요 🌙";
+  const isCur = view === TODAY.slice(0, 7), daysLeft = isCur ? FEE.daysIn(view) - now.getDate() + 1 : 0;
+  $("hello").innerHTML = `<div class="hi"><b>${greet}</b><span>${now.getMonth() + 1}월 ${now.getDate()}일 ${DOW[now.getDay()]}요일</span></div>
+    <div class="hstat"><span>📅 이번 달 남은 날</span><b>${isCur ? `${daysLeft}일` : "-"}</b></div>
+    <div class="hstat"><span>🧾 ${m}월 거래</span><b>${list.length}건</b></div>
+    <div class="hstat"><span>✂️ 줄일 수 있는 돈</span><b>${won(s.wants)}</b></div>`;
+  // 🏠 홈: 가장 많이 쓴 곳 + 한 줄 팁
+  const top = Object.entries(s.byCat).sort((a, b) => b[1] - a[1])[0];
+  const topWant = FEE.wantsByCat(list)[0];
+  $("insight").innerHTML = `<h2>🏆 ${m}월 한눈에</h2>` + (top
+    ? `<div class="topcat"><span class="ce">${em(top[0])}</span><div><small>가장 많이 쓴 곳</small><b>${catLabel(top[0])} ${won(top[1])}</b><small>지출의 ${Math.round((top[1] / s.out) * 100)}%</small></div></div>`
+    : `<p class="muted">아직 이 달 지출이 없어요. ✍️ 기록에서 첫 거래를 적어 보세요.</p>`) +
+    `<p class="tip">💡 ${topWant ? `"꼭 필요하진 않았던" ${catLabel(topWant[0])}가 ${won(topWant[1])}이에요. 이번 주엔 여기서 조금만 줄여 봐요.` : s.out ? "꼭 필요한 데만 쓰고 있어요. 이대로 가요! 👏" : "예산을 먼저 정해 두면 오늘 쓸 수 있는 돈이 계산돼요."}</p>`;
+  // 🏠 홈: 최근 거래 5건
+  const recent = [...list].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, 5);
+  $("recent").innerHTML = recent.map((e) => `<li><span class="ce">${em(e.category)}</span><div><b>${esc(e.memo || e.category)}</b><small>${md(e.date)} · ${esc(e.category)}</small></div><b class="${e.type}">${e.type === "out" ? "−" : "+"}${won(e.amount)}</b></li>`).join("")
+    || `<li class="muted">아직 거래가 없어요.</li>`;
   const diff = (a, b) => (b ? `지난달보다 ${a >= b ? "▲" : "▼"} ${won(Math.abs(a - b))}` : "지난달 기록 없음");
   $("incTotal").textContent = won(s.inc);
   $("incNote").textContent = `${list.filter((e) => e.type === "in").length}건 · ${diff(s.inc, prev.inc)}`;
@@ -85,7 +118,7 @@ function render() {
   const endDate = view === TODAY.slice(0, 7) ? TODAY : `${view}-${FEE.daysIn(view)}`;
   const weeks = FEE.weekly(entries, endDate, 8, FEE.WEEK_START);
   if (!weeks.length) {
-    $("weekChart").innerHTML = `<div class="placeholder">📅 주별 그래프는 <b>11월 16일(월)</b> 주부터 그려져요.<br><span class="muted small">그 전에 쓴 돈도 기록해 두면 일별 지출과 거래내역에서 볼 수 있어요.</span></div>`;
+    $("weekChart").innerHTML = `<div class="placeholder">📅 주별 그래프는 <b>12월 첫 주(11/30 월)</b>부터 그려져요.<br><span class="muted small">그 전에 쓴 돈도 기록해 두면 일별 지출과 거래내역에서 볼 수 있어요.</span></div>`;
   } else {
     lineChart($("weekChart"), weeks.map((x) => `${+x.start.slice(5, 7)}/${+x.start.slice(8)}`), [
       { name: "지출", cls: "out", values: weeks.map((x) => x.out) },
@@ -156,6 +189,13 @@ function lineChart(el, labels, series, ref = 0, tips = labels) {
   el.onmouseleave = () => { tip.hidden = true; cross.setAttribute("x1", -10); cross.setAttribute("x2", -10); };
 }
 
+$("catGrid").onclick = (e) => {
+  const b = e.target.closest("[data-cat]"); if (!b) return;
+  const f = $("form");
+  if (f.type.value !== "out") { f.type.value = "out"; setCats("out"); }
+  f.category.value = b.dataset.cat;
+  f.amount.focus();
+};
 $("form").onchange = (e) => { if (e.target.name === "type") setCats(e.target.value); };
 $("form").onsubmit = (e) => {
   e.preventDefault();
@@ -224,6 +264,11 @@ $("form").date.value = TODAY;
 setCats("out");
 entries = load("fee.entries", []);
 budgets = load("fee.budgets", {});
+if (!load("fee.decReset", false)) {
+  if (entries.length || Object.keys(budgets).length) save("fee.beforeDec", { entries, budgets });
+  entries = []; budgets = {};
+  save("fee.entries", entries); save("fee.budgets", budgets); save("fee.decReset", true);
+}
 if (entries.some((e) => OLD_CATS[e.category])) {
   entries = entries.map((e) => (OLD_CATS[e.category] ? { ...e, category: OLD_CATS[e.category] } : e));
   save("fee.entries", entries);
@@ -267,7 +312,7 @@ function go(s, push = true) {
   if (s === "stats") render(); // 숨겨져 있던 그래프는 보일 때 폭에 맞춰 다시 그린다
   scrollTo(0, 0);
 }
-$("tabbar").onclick = (e) => { const b = e.target.closest("[data-go]"); if (b) go(b.dataset.go); };
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-go]"); if (b) go(b.dataset.go); }); // 탭 바·"전체 보기" 등
 addEventListener("hashchange", () => { const s = location.hash.slice(1); if (s && s !== screen) go(s, false); });
 // 폰에서 좌우로 밀면 옆 화면으로(입력칸·그래프 위에서는 무시)
 let tx = null, ty = 0;

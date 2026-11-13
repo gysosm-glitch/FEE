@@ -57,7 +57,7 @@
       return { start, end, out };
     }).filter((w) => w.start >= from);
   }
-  const WEEK_START = "2026-11-16"; // 주별 기록 시작(월요일)
+  const WEEK_START = "2026-11-30"; // 주별 기록 시작(월요일)
 
   // 줄일 수 있는 돈: "꼭 필요하지 않았던" 지출을 분류별로
   function wantsByCat(list) {
