@@ -237,3 +237,9 @@ header .acct { margin-left: 6px; }
 .xl-menu button:hover { background: #f1eefb; }
 .xl-menu button.primary { background: var(--accent); color: #fff; }
 .xl-menu p { margin: 4px 6px; font-size: 11px; color: #6e6a8f; }
+
+/* 오늘 쓸 수 있는 돈 칸을 뺀 뒤: 통장 카드와 수입·지출 카드를 한 줄로 */
+.hero .passbook { grid-row: auto; }
+.hero { grid-template-columns: 1fr 2fr; }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
+.hero .flow { grid-column: auto; }

@@ -41,11 +41,6 @@ function render() {
   $("meter").style.width = budget ? `${Math.min(100, (s.out / budget) * 100)}%` : "0";
   $("pbSub").textContent = budget ? `예산 ${won(budget)} 중 ${won(s.out)} 사용 (${Math.round((s.out / budget) * 100)}%)` : "‘예산 설정’을 눌러 이번 달에 쓸 금액을 정하세요.";
 
-  const allow = FEE.allowance(budget, s.out, TODAY, view);
-  const spentToday = view === TODAY.slice(0, 7) ? s.byDay[TODAY] || 0 : 0;
-  $("allow").textContent = budget ? won(allow) : "-";
-  $("allowNote").textContent = budget ? (view === TODAY.slice(0, 7) ? `오늘 ${won(spentToday)} 썼어요` : "이 달의 하루 평균 한도") : "예산을 정하면 계산돼요";
-
   // 이번 달 수입·지출 크게
   const prev = FEE.summary(FEE.inMonth(entries, FEE.shiftMonth(view, -1)));
 
@@ -75,7 +70,7 @@ function render() {
   $("insight").innerHTML = `<h2>🏆 ${m}월 한눈에</h2>` + (top
     ? `<div class="topcat"><span class="ce">${em(top[0])}</span><div><small>가장 많이 쓴 곳</small><b>${catLabel(top[0])} ${won(top[1])}</b><small>지출의 ${Math.round((top[1] / s.out) * 100)}%</small></div></div>`
     : `<p class="muted">아직 이 달 지출이 없어요. ✍️ 기록에서 첫 거래를 적어 보세요.</p>`) +
-    `<p class="tip">💡 ${topWant ? `"꼭 필요하진 않았던" ${catLabel(topWant[0])}가 ${won(topWant[1])}이에요. 이번 주엔 여기서 조금만 줄여 봐요.` : s.out ? "꼭 필요한 데만 쓰고 있어요. 이대로 가요! 👏" : "예산을 먼저 정해 두면 오늘 쓸 수 있는 돈이 계산돼요."}</p>`;
+    `<p class="tip">💡 ${topWant ? `"꼭 필요하진 않았던" ${catLabel(topWant[0])}가 ${won(topWant[1])}이에요. 이번 주엔 여기서 조금만 줄여 봐요.` : s.out ? "꼭 필요한 데만 쓰고 있어요. 이대로 가요! 👏" : "통장 카드의 ✏️ 예산 설정에서 이번 달 예산부터 정해 보세요."}</p>`;
   // 🏠 홈: 최근 거래 5건
   const recent = [...list].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, 5);
   $("recent").innerHTML = recent.map((e) => `<li><span class="ce">${em(e.category)}</span><div><b>${esc(e.memo || e.category)}</b><small>${md(e.date)} · ${esc(e.category)}</small></div><b class="${e.type}">${e.type === "out" ? "−" : "+"}${won(e.amount)}</b></li>`).join("")
