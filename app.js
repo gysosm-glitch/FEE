@@ -1,4 +1,8 @@
 import { load, save, downloadBackup, backupReminder } from "./db.js";
+import { requireLogin, logout } from "./auth.js";
+import { initExcel } from "./excel.js";
+
+await requireLogin("fee", "🏦 FEE 가계부"); // 로그인하기 전에는 아래가 실행되지 않는다
 
 const EMOJI = {
   생활: "🧴", 여가: "🎬", 구독: "📱", 쇼핑: "🛍️", 교통: "🚌", 식비: "🍚", 기타: "📦",
@@ -329,3 +333,13 @@ go(location.hash.slice(1) || "home", false);
 
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 200); });
 backupReminder("FEE", entries.length > 0 || Object.keys(budgets).length > 0, exportAll);
+
+// 📗 엑셀 DB: 사람이 보기 좋은 시트들(복원은 _data 시트로)
+initExcel({
+  prefix: "fee", appName: "FEE가계부", el: $("xl"),
+  sheets: () => ({
+    거래내역: [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map((e) => ({ 날짜: e.date, 구분: e.type === "out" ? "지출" : "수입", 금액: e.amount, 분류: e.category, 적요: e.memo || "", 꼭필요: e.type === "out" ? (e.need ? "O" : "X") : "" })),
+    예산: Object.entries(budgets).sort().map(([ym, v]) => ({ 월: ym, 예산: v })),
+  }),
+});
+$("logout").onclick = () => logout("fee");
