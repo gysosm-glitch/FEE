@@ -1,10 +1,11 @@
 import { load, save, downloadBackup, backupReminder } from "./db.js";
 
 const EMOJI = {
-  식비: "🍚", "카페·간식": "☕", 교통: "🚌", 쇼핑: "🛍️", "문화·여가": "🎬", "통신·구독": "📱", 생활: "🧴", 기타: "📦",
+  생활: "🧴", 여가: "🎬", 구독: "📱", 쇼핑: "🛍️", 교통: "🚌", 식비: "🍚", 기타: "📦",
   아르바이트: "💼", 용돈: "🎁", "기타 수입": "💰",
 };
-const OUT_CATS = ["식비", "카페·간식", "교통", "쇼핑", "문화·여가", "통신·구독", "생활", "기타"];
+const OUT_CATS = ["생활", "여가", "구독", "쇼핑", "교통", "식비", "기타"];
+const OLD_CATS = { "카페·간식": "식비", "문화·여가": "여가", "통신·구독": "구독" }; // 예전 분류 → 새 분류
 const IN_CATS = ["아르바이트", "용돈", "기타 수입"];
 const em = (c) => EMOJI[c] || "📦";
 const short = (n) => (n >= 10000 ? `${+(n / 10000).toFixed(1)}만` : n.toLocaleString("ko-KR"));
@@ -166,8 +167,10 @@ $("form").onsubmit = (e) => {
   if (editing === null) entries.push(entry); else entries = entries.map((x) => (x.id === editing ? entry : x));
   save("fee.entries", entries);
   view = f.get("date").slice(0, 7);
+  const wasEdit = editing !== null;
   setEditing(null);
   render();
+  go(wasEdit ? "list" : "home");
 };
 
 // 수정: 거래를 폼에 불러와 고친 뒤 "수정 저장"
@@ -182,7 +185,7 @@ function setEditing(id) {
   const x = entries.find((e) => e.id === id);
   f.type.value = x.type; setCats(x.type);
   f.date.value = x.date; f.amount.value = x.amount; f.category.value = x.category; f.memo.value = x.memo || ""; f.need.checked = x.need;
-  f.scrollIntoView({ behavior: "smooth", block: "center" }); f.amount.focus({ preventScroll: true });
+  go("add"); f.amount.focus({ preventScroll: true });
 }
 $("cancelEdit").onclick = () => setEditing(null);
 $("ledger").onclick = (e) => {
@@ -221,6 +224,10 @@ $("form").date.value = TODAY;
 setCats("out");
 entries = load("fee.entries", []);
 budgets = load("fee.budgets", {});
+if (entries.some((e) => OLD_CATS[e.category])) {
+  entries = entries.map((e) => (OLD_CATS[e.category] ? { ...e, category: OLD_CATS[e.category] } : e));
+  save("fee.entries", entries);
+}
 
 // 2027년 첫 실행: 2026년 연습 기록을 화면에서 정리한다. 지우기 전에 사본을 따로 보관해 파일로 받을 수 있게 한다.
 if (TODAY >= FEE.START) {
@@ -242,5 +249,38 @@ if (TODAY >= FEE.START) {
   $("trial").hidden = false;
 }
 render();
+
+/* ---------- 화면 나누기: 홈·기록·분석·내역 (하단 탭 바, 좌우로 밀기, 주소 #home 등) ---------- */
+const SCREENS = ["home", "add", "stats", "list"];
+let screen = "home";
+function go(s, push = true) {
+  if (!SCREENS.includes(s)) s = "home";
+  const dir = SCREENS.indexOf(s) - SCREENS.indexOf(screen);
+  screen = s;
+  document.querySelectorAll(".screen").forEach((el) => {
+    const on = el.dataset.screen === s;
+    el.hidden = !on;
+    if (on && dir) { el.classList.remove("in-l", "in-r"); void el.offsetWidth; el.classList.add(dir > 0 ? "in-r" : "in-l"); }
+  });
+  document.querySelectorAll("#tabbar [data-go]").forEach((b) => b.setAttribute("aria-current", b.dataset.go === s ? "page" : "false"));
+  if (location.hash !== `#${s}`) push ? (location.hash = s) : history.replaceState(null, "", `#${s}`);
+  if (s === "stats") render(); // 숨겨져 있던 그래프는 보일 때 폭에 맞춰 다시 그린다
+  scrollTo(0, 0);
+}
+$("tabbar").onclick = (e) => { const b = e.target.closest("[data-go]"); if (b) go(b.dataset.go); };
+addEventListener("hashchange", () => { const s = location.hash.slice(1); if (s && s !== screen) go(s, false); });
+// 폰에서 좌우로 밀면 옆 화면으로(입력칸·그래프 위에서는 무시)
+let tx = null, ty = 0;
+$("screens").addEventListener("touchstart", (e) => {
+  tx = e.target.closest("input, select, textarea, .chart, .scroll") ? null : e.touches[0].clientX; ty = e.touches[0].clientY;
+}, { passive: true });
+$("screens").addEventListener("touchend", (e) => {
+  if (tx === null) return;
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+  if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(SCREENS[Math.min(SCREENS.length - 1, Math.max(0, SCREENS.indexOf(screen) + (dx < 0 ? 1 : -1)))]);
+  tx = null;
+}, { passive: true });
+go(location.hash.slice(1) || "home", false);
+
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 200); });
 backupReminder("FEE", entries.length > 0 || Object.keys(budgets).length > 0, exportAll);

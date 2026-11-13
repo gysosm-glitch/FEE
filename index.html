@@ -32,7 +32,9 @@
   <div class="notice newyear" id="newYear" hidden role="status"><span>🎉 <b>2027년 새 출발!</b> 2026년 연습 기록 <b id="newYearCount">0</b>건을 정리했어요.</span>
     <button id="practiceDl">📥 연습 기록 파일로 받기</button><button id="newYearClose">닫기</button></div>
 
-  <main>
+  <main id="screens">
+    <!-- 🏠 홈 -->
+    <div class="screen" data-screen="home">
     <div class="hero">
       <section class="passbook" aria-label="이번 달 예산 잔액">
         <div class="pb-top"><span id="acct"></span><button id="editBudget" class="ghost small">✏️ 예산 설정</button></div>
@@ -52,9 +54,11 @@
         <span class="muted small" id="allowNote"></span>
       </section>
     </div>
+    </div>
 
-    <div class="row">
-      <section class="card">
+    <!-- ✍️ 기록 -->
+    <div class="screen" data-screen="add" hidden>
+    <section class="card">
         <h2>✍️ 거래 입력</h2>
         <form id="form" class="form">
           <div class="seg full" role="radiogroup" aria-label="거래 종류">
@@ -70,17 +74,18 @@
           <button type="button" class="full" id="cancelEdit" hidden>수정 취소</button>
         </form>
       </section>
-      <section class="card">
+    </div>
+
+    <!-- 📊 분석 -->
+    <div class="screen" data-screen="stats" hidden>
+    <section class="card">
         <h2>🧾 분야별 지출 <span class="right muted small" id="catTotal"></span></h2>
         <div class="bars" id="bars"></div>
       </section>
-    </div>
-
     <section class="card save-card">
       <h2>✂️ 앞으로 줄일 수 있는 돈 <span class="right muted small" id="cutNote"></span></h2>
       <div class="cut" id="cut"></div>
     </section>
-
     <div class="row">
       <section class="card">
         <h2><span id="monthTitle">📈 월별 수입·지출</span> <span class="right legend"><span><i class="ln-s out"></i>지출</span><span><i class="ln-s in"></i>수입</span></span></h2>
@@ -91,13 +96,15 @@
         <div class="chart" id="weekChart"></div>
       </section>
     </div>
-
     <section class="card">
       <h2>📅 일별 지출 <span class="right legend"><span><i class="sw ok"></i>하루 예산 이내</span><span><i class="sw over"></i>초과</span><span><i class="ln"></i>하루 예산</span></span></h2>
       <div class="daily" id="daily"></div>
       <div class="days" id="days"></div>
     </section>
+    </div>
 
+    <!-- 📒 내역 -->
+    <div class="screen" data-screen="list" hidden>
     <section class="card">
       <h2>📒 거래내역 <span class="right toolbar">
         <button id="export">💾 백업 파일 저장</button>
@@ -105,7 +112,15 @@
       </span></h2>
       <div class="scroll"><table class="ledger" id="ledger"></table></div>
     </section>
+    </div>
   </main>
+
+  <nav class="tabbar" id="tabbar" aria-label="화면 이동">
+    <button data-go="home"><span>🏠</span>홈</button>
+    <button data-go="add"><span>✍️</span>기록</button>
+    <button data-go="stats"><span>📊</span>분석</button>
+    <button data-go="list"><span>📒</span>내역</button>
+  </nav>
   <div class="tip" id="tip" hidden></div>
   <script src="logic.js"></script>
   <script type="module" src="app.js"></script>
