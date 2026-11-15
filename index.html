@@ -63,12 +63,13 @@
     <!-- ✍️ 기록 -->
     <div class="screen" data-screen="add" hidden>
     <section class="card">
-      <h2>📆 <span id="catMonth"></span> 분야별 지출 <span class="right muted small" id="catSum"></span></h2>
+      <h2>📆 <span id="catMonth"></span> 분야별 지출 <span class="right muted small" id="catSum"></span><button type="button" class="small-btn" id="cbBtn">🎯 분류별 예산</button></h2>
       <div class="catgrid" id="catGrid"></div>
       <p class="muted small hint">칸을 누르면 아래 입력칸에서 그 분류가 바로 선택돼요. 위쪽 ‹ › 로 다른 달도 볼 수 있어요.</p>
     </section>
     <section class="card">
         <h2>✍️ 거래 입력</h2>
+        <div class="quick" id="quick"></div>
         <form id="form" class="form">
           <div class="seg full" role="radiogroup" aria-label="거래 종류">
             <label><input type="radio" name="type" value="out" checked><span>💸 출금 (지출)</span></label>
@@ -83,6 +84,19 @@
           <button type="button" class="full" id="cancelEdit" hidden>수정 취소</button>
         </form>
       </section>
+    <section class="card">
+      <h2>🔁 고정 지출·수입 <span class="right muted small">매달 정한 날 자동으로 기록돼요</span></h2>
+      <ul class="fixed" id="fixedList"></ul>
+      <form class="form" id="fixedForm">
+        <select name="type" aria-label="구분"><option value="out">💸 지출</option><option value="in">💵 수입</option></select>
+        <label class="inl">매달 <input name="day" type="number" min="1" max="31" value="1" required aria-label="매달 며칠"> 일</label>
+        <input name="amount" type="number" inputmode="numeric" min="1" step="1" placeholder="금액 (원)" required aria-label="금액">
+        <select name="category" id="fixedCat" aria-label="분류"></select>
+        <input class="full" name="memo" placeholder="이름 (예: 유튜브 프리미엄, 통신비, 용돈)" maxlength="40" required aria-label="이름">
+        <button class="primary full">고정 항목 추가</button>
+      </form>
+      <p class="muted small hint">등록한 날이 그 달 지정일보다 늦으면 다음 달부터 기록돼요. 31일로 정하면 짧은 달은 말일에 기록돼요.</p>
+    </section>
     </div>
 
     <!-- 📊 분석 -->
@@ -131,6 +145,14 @@
     <button data-go="list"><span>📒</span>내역</button>
   </nav>
   <div class="tip" id="tip" hidden></div>
+  <dialog id="cbDlg" aria-labelledby="cbTitle">
+    <form id="cbForm">
+      <h2 id="cbTitle">🎯 분류별 월 예산</h2>
+      <p class="muted small">매달 같은 금액이 적용돼요. 비워 두면 그 분류는 예산 없음이에요.</p>
+      <div class="cbrows" id="cbRows"></div>
+      <div class="actions"><button type="button" id="cbCancel">취소</button><span class="grow"></span><button class="primary">저장</button></div>
+    </form>
+  </dialog>
   <script src="logic.js"></script>
   <script type="module" src="app.js"></script>
 </body>

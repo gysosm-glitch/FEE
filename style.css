@@ -243,3 +243,34 @@ header .acct { margin-left: 6px; }
 .hero { grid-template-columns: 1fr 2fr; }
 @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
 .hero .flow { grid-column: auto; }
+
+/* ⚡ 빠른 입력 */
+.quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.quick button { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #f3f8f6; border: 1px solid var(--line); }
+.quick button b { color: var(--teal); font-variant-numeric: tabular-nums; }
+/* 🎯 분류별 예산 */
+.small-btn { font-size: 12px; padding: 3px 10px; margin-left: 8px; }
+.cattile.over { border-color: #e9a59e; background: #fff6f5; }
+.cattile.over::after { background: var(--out); }
+.cattile .cbline { color: var(--ink); }
+.warnline { margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; background: #fff1ef; color: var(--out); font-size: 13px; }
+/* 🔁 고정 지출·수입 */
+.fixed { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.fixed li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #f8fbfa; }
+.fixed .ce { font-size: 20px; }
+.fixed li > div { flex: 1; min-width: 0; display: grid; }
+.fixed small { font-size: 11px; color: var(--sub); }
+.fixed b.out { color: var(--out); } .fixed b.in { color: var(--in); }
+.fixed .x { border: none; background: none; color: var(--sub); box-shadow: none; }
+.inl { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.inl input { width: 70px; }
+.tag.fx { color: var(--teal); border-color: #b9d7cf; }
+/* 대화 창 */
+dialog { border: none; border-radius: 16px; padding: 20px; width: min(420px, calc(100vw - 24px)); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); }
+dialog::backdrop { background: rgba(12, 40, 36, .45); }
+dialog h2 { margin: 0 0 6px; font-size: 18px; }
+.cbrows { display: grid; gap: 8px; margin: 12px 0; }
+.cbrows label { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.cbrows input { width: 140px; text-align: right; }
+.actions { display: flex; gap: 8px; align-items: center; }
+.actions .grow { flex: 1; }

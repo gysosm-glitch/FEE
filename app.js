@@ -51,8 +51,10 @@ function render() {
   $("catGrid").innerHTML = OUT_CATS.map((c) => {
     const v = s.byCat[c] || 0, pv = prev.byCat[c] || 0;
     const vs = v || pv ? ` · 지난달 ${v >= pv ? "▲" : "▼"}${won(Math.abs(v - pv))}` : "";
-    return `<button type="button" class="cattile${v ? "" : " zero"}" data-cat="${c}" style="--w:${s.out ? Math.round((v / s.out) * 100) : 0}%">
+    const cb = catBudget[c], used = cb ? Math.round((v / cb) * 100) : 0;
+    return `<button type="button" class="cattile${v ? "" : " zero"}${cb && v > cb ? " over" : ""}" data-cat="${c}" style="--w:${cb ? Math.min(100, used) : s.out ? Math.round((v / s.out) * 100) : 0}%">
       <span class="ce">${em(c)}</span><span class="cl">${catLabel(c)}</span><b>${won(v)}</b>
+      ${cb ? `<small class="cbline">예산 ${won(cb)} 중 <b>${used}%</b>${v > cb ? ` · ${won(v - cb)} 초과 ⚠️` : ` · ${won(cb - v)} 남음`}</small>` : ""}
       <small>${cntOf(c)}건${s.out ? ` · ${Math.round((v / s.out) * 100)}%` : ""}${vs}</small></button>`;
   }).join("");
 
@@ -70,6 +72,7 @@ function render() {
   $("insight").innerHTML = `<h2>🏆 ${m}월 한눈에</h2>` + (top
     ? `<div class="topcat"><span class="ce">${em(top[0])}</span><div><small>가장 많이 쓴 곳</small><b>${catLabel(top[0])} ${won(top[1])}</b><small>지출의 ${Math.round((top[1] / s.out) * 100)}%</small></div></div>`
     : `<p class="muted">아직 이 달 지출이 없어요. ✍️ 기록에서 첫 거래를 적어 보세요.</p>`) +
+    OUT_CATS.filter((c) => catBudget[c] && (s.byCat[c] || 0) > catBudget[c]).map((c) => `<p class="warnline">⚠️ ${catLabel(c)}가 예산보다 ${won(s.byCat[c] - catBudget[c])} 더 나갔어요</p>`).join("") +
     `<p class="tip">💡 ${topWant ? `"꼭 필요하진 않았던" ${catLabel(topWant[0])}가 ${won(topWant[1])}이에요. 이번 주엔 여기서 조금만 줄여 봐요.` : s.out ? "꼭 필요한 데만 쓰고 있어요. 이대로 가요! 👏" : "통장 카드의 ✏️ 예산 설정에서 이번 달 예산부터 정해 보세요."}</p>`;
   // 🏠 홈: 최근 거래 5건
   const recent = [...list].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, 5);
@@ -138,10 +141,43 @@ function render() {
 
   const rows = FEE.ledger(list, budget).reverse();
   $("ledger").innerHTML = `<tr><th>거래일</th><th>적요</th><th class="num">출금</th><th class="num">입금</th><th class="num">남은 예산</th><th></th></tr>` +
-    (rows.map((e) => `<tr><td>${md(e.date)}</td><td>${em(e.category)} ${esc(e.category)}${e.memo ? ` <span class="muted">${esc(e.memo)}</span>` : ""}${e.type === "out" && !e.need ? ' <span class="tag">불필요</span>' : ""}</td>
+    (rows.map((e) => `<tr><td>${md(e.date)}</td><td>${em(e.category)} ${esc(e.category)}${e.memo ? ` <span class="muted">${esc(e.memo)}</span>` : ""}${e.type === "out" && !e.need ? ' <span class="tag">불필요</span>' : ""}${e.fixed ? ' <span class="tag fx">🔁 고정</span>' : ""}</td>
       <td class="num out">${e.type === "out" ? won(e.amount) : ""}</td><td class="num in">${e.type === "in" ? won(e.amount) : ""}</td>
       <td class="num">${budget ? won(e.bal) : "-"}</td><td class="acts"><button class="x ed" data-id="${e.id}" aria-label="수정">✎</button><button class="x" data-id="${e.id}" aria-label="삭제">✕</button></td></tr>`).join("")
       || `<tr><td colspan="6" class="muted">아직 거래가 없어요. 위에서 첫 거래를 기록해 보세요.</td></tr>`);
+  renderQuick(); renderFixed();
+}
+
+// ⚡ 빠른 입력: 최근에 쓴 항목(같은 분류·적요·금액은 한 번만)
+function renderQuick() {
+  const seen = new Set(), q = [];
+  for (const e of [...entries].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)) {
+    const k = `${e.type}|${e.category}|${e.memo}|${e.amount}`;
+    if (e.fixed || seen.has(k)) continue;
+    seen.add(k); q.push(e);
+    if (q.length === 6) break;
+  }
+  $("quick").innerHTML = q.length ? `<span class="muted small">⚡ 최근</span>` + q.map((e, i) => `<button type="button" data-q="${i}">${em(e.category)} ${esc(e.memo || e.category)} <b>${won(e.amount)}</b></button>`).join("") : "";
+  $("quick").onclick = (ev) => {
+    const b = ev.target.closest("[data-q]"); if (!b) return;
+    const e = q[+b.dataset.q], f = $("form");
+    f.type.value = e.type; setCats(e.type); f.category.value = e.category; f.amount.value = e.amount; f.memo.value = e.memo || ""; f.need.checked = e.need !== false;
+    f.date.value = TODAY; f.amount.focus();
+  };
+}
+// 🔁 고정 지출·수입 목록
+function renderFixed() {
+  $("fixedList").innerHTML = fixed.map((f) => `<li><span class="ce">${em(f.category)}</span><div><b>${esc(f.memo)}</b><small>매달 ${f.day}일 · ${esc(f.category)}</small></div><b class="${f.type}">${f.type === "out" ? "−" : "+"}${won(f.amount)}</b><button type="button" class="x" data-id="${f.id}" aria-label="${esc(f.memo)} 삭제">✕</button></li>`).join("")
+    || `<li class="muted small">아직 없어요. 구독료·통신비·용돈처럼 매달 같은 날 나가거나 들어오는 돈을 등록해 보세요.</li>`;
+}
+// 지정일이 지난 고정 항목을 거래내역에 넣는다(달마다 한 번)
+function applyFixed() {
+  const due = FEE.dueFixed(fixed, fixedPosted, TODAY);
+  due.forEach(({ f, ym, date }, i) => {
+    entries.push({ id: Date.now() + i, date, type: f.type, amount: f.amount, category: f.category, memo: f.memo, need: true, fixed: f.id });
+    fixedPosted[`${f.id}|${ym}`] = true;
+  });
+  if (due.length) { save("fee.entries", entries); save("fee.fixedPosted", fixedPosted); }
 }
 
 function setCats(type) {
@@ -245,7 +281,7 @@ $("editBudget").onclick = () => {
 };
 $("prev").onclick = () => { view = FEE.shiftMonth(view, -1); render(); };
 $("next").onclick = () => { view = FEE.shiftMonth(view, 1); render(); };
-const exportAll = () => downloadBackup("FEE", { entries, budgets });
+const exportAll = () => downloadBackup("FEE", { entries, budgets, fixed, fixedPosted, catBudget });
 $("export").onclick = exportAll;
 $("import").onchange = async (e) => {
   const file = e.target.files[0]; e.target.value = "";
@@ -254,13 +290,16 @@ $("import").onchange = async (e) => {
     const d = JSON.parse(await file.text());
     if (!Array.isArray(d.entries) || !d.entries.every((x) => x.date && x.type && Number.isFinite(x.amount))) throw new Error("형식이 맞지 않아요");
     if (!confirm(`백업의 거래 ${d.entries.length}건으로 지금 기록을 바꿀까요? 현재 기록은 사라져요.`)) return;
-    entries = d.entries; budgets = d.budgets || {};
-    save("fee.entries", entries); save("fee.budgets", budgets); render();
+    entries = d.entries; budgets = d.budgets || {}; fixed = d.fixed || []; fixedPosted = d.fixedPosted || {}; catBudget = d.catBudget || {};
+    save("fee.entries", entries); save("fee.budgets", budgets); save("fee.fixed", fixed); save("fee.fixedPosted", fixedPosted); save("fee.catBudget", catBudget); render();
   } catch (err) { alert("백업 파일을 읽지 못했어요: " + err.message); }
 };
 
 $("form").date.value = TODAY;
 setCats("out");
+let fixed = load("fee.fixed", []);             // [{ id, day, type, amount, category, memo, since }]
+let fixedPosted = load("fee.fixedPosted", {}); // { "id|YYYY-MM": true }
+let catBudget = load("fee.catBudget", {});     // { 분류: 매달 예산 }
 entries = load("fee.entries", []);
 budgets = load("fee.budgets", {});
 if (!load("fee.decReset", false)) {
@@ -292,7 +331,39 @@ if (TODAY >= FEE.START) {
 } else {
   $("trial").hidden = false;
 }
+applyFixed();
 render();
+
+// 🔁 고정 항목 추가·삭제
+const fixedCats = (type) => ($("fixedCat").innerHTML = (type === "in" ? IN_CATS : OUT_CATS).map((c) => `<option value="${c}">${em(c)} ${c}</option>`).join(""));
+fixedCats("out");
+$("fixedForm").type.onchange = (e) => fixedCats(e.target.value);
+$("fixedForm").onsubmit = (e) => {
+  e.preventDefault();
+  const f = e.target.elements, amount = Number(f.amount.value), day = Math.round(+f.day.value);
+  if (!Number.isInteger(amount) || amount <= 0) return alert("금액은 1원 이상의 정수로 입력하세요.");
+  if (!(day >= 1 && day <= 31)) return alert("날짜는 1~31일 사이로 정해 주세요.");
+  fixed.push({ id: `f${Date.now()}`, day, type: f.type.value, amount, category: f.category.value, memo: f.memo.value.trim(), since: TODAY });
+  save("fee.fixed", fixed);
+  applyFixed(); e.target.reset(); fixedCats("out"); render();
+};
+$("fixedList").onclick = (e) => {
+  const b = e.target.closest(".x"); if (!b) return;
+  const f = fixed.find((x) => x.id === b.dataset.id);
+  if (!confirm(`"${f.memo}" 고정 항목을 삭제할까요? 이미 기록된 거래는 그대로 남아요.`)) return;
+  fixed = fixed.filter((x) => x.id !== f.id); save("fee.fixed", fixed); render();
+};
+// 🎯 분류별 예산
+$("cbBtn").onclick = () => {
+  $("cbRows").innerHTML = OUT_CATS.map((c) => `<label>${em(c)} ${catLabel(c)} <input type="number" inputmode="numeric" min="0" step="1000" name="${c}" value="${catBudget[c] || ""}" placeholder="예산 없음"></label>`).join("");
+  $("cbDlg").showModal();
+};
+$("cbCancel").onclick = () => $("cbDlg").close();
+$("cbForm").onsubmit = (e) => {
+  e.preventDefault();
+  catBudget = Object.fromEntries(OUT_CATS.map((c) => [c, Math.round(+e.target.elements[c].value || 0)]).filter(([, v]) => v > 0));
+  save("fee.catBudget", catBudget); $("cbDlg").close(); render();
+};
 
 /* ---------- 화면 나누기: 홈·기록·분석·내역 (하단 탭 바, 좌우로 밀기, 주소 #home 등) ---------- */
 const SCREENS = ["home", "add", "stats", "list"];
@@ -335,6 +406,8 @@ initExcel({
   sheets: () => ({
     거래내역: [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map((e) => ({ 날짜: e.date, 구분: e.type === "out" ? "지출" : "수입", 금액: e.amount, 분류: e.category, 적요: e.memo || "", 꼭필요: e.type === "out" ? (e.need ? "O" : "X") : "" })),
     예산: Object.entries(budgets).sort().map(([ym, v]) => ({ 월: ym, 예산: v })),
+    고정지출: fixed.map((f) => ({ 이름: f.memo, 구분: f.type === "out" ? "지출" : "수입", 매달: `${f.day}일`, 금액: f.amount, 분류: f.category, 등록일: f.since })),
+    분류예산: OUT_CATS.filter((c) => catBudget[c]).map((c) => ({ 분류: catLabel(c), 매달예산: catBudget[c] })),
   }),
 });
 $("logout").onclick = () => logout("fee");

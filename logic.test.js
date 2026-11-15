@@ -33,4 +33,10 @@ assert.strictEqual(F.weekly(E, "2026-11-13", 8, F.WEEK_START).length, 0);
 const sp = F.splitPractice([...E, { id: 9, date: "2027-01-02", type: "out", amount: 3000, category: "식비", need: true }], { "2026-11": 400000, "2027-01": 500000 });
 assert.deepStrictEqual([sp.old.length, sp.keep.length, Object.keys(sp.oldBudgets), Object.keys(sp.keepBudgets)], [4, 1, ["2026-11"], ["2027-01"]]);
 assert.deepStrictEqual([F.yearMonths("2026-11")[0], F.yearMonths("2026-11")[11], F.yearMonths("2028-03")[0]], ["2027-01", "2027-12", "2028-01"]);
+// 고정 지출: 11/20 등록·매달 5일 → 11월은 이미 지나서 12/5부터, 1/5까지 두 번
+const fx = [{ id: "a", day: 5, since: "2026-11-20" }];
+assert.deepStrictEqual(F.dueFixed(fx, {}, "2027-01-10").map((x) => x.date), ["2026-12-05", "2027-01-05"]);
+assert.deepStrictEqual(F.dueFixed(fx, { "a|2026-12": true }, "2027-01-10").map((x) => x.date), ["2027-01-05"]); // 이미 기록한 달은 건너뜀
+assert.deepStrictEqual(F.dueFixed([{ id: "b", day: 31, since: "2026-11-01" }], {}, "2026-11-30").map((x) => x.date), ["2026-11-30"]); // 말일 보정
+assert.strictEqual(F.dueFixed(fx, {}, "2026-12-04").length, 0); // 아직 지정일 전
 console.log("ok");

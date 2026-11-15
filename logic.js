@@ -84,6 +84,22 @@
   // 월별 그래프에 그릴 달: 2027년부터, 보고 있는 해의 1~12월
   const yearMonths = (ym) => { const y = Math.max(+START.slice(0, 4), +ym.slice(0, 4)); return Array.from({ length: 12 }, (_, i) => `${y}-${pad(i + 1)}`); };
 
-  const api = { pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger, addDays, mondayOf, monthly, weekly, wantsByCat, projection, START, splitPractice, yearMonths, WEEK_START };
+  // 고정 지출·수입: 등록한 달부터(등록일이 그 달 지정일보다 늦으면 다음 달부터) 지정일이 지난 달마다 한 번씩 기록할 것
+  // fixed: [{ id, day, since }], posted: { "id|YYYY-MM": true } → [{ f, ym, date }]
+  function dueFixed(fixed, posted, today) {
+    const out = [];
+    for (const f of fixed) {
+      let ym = f.since.slice(0, 7);
+      if (+f.since.slice(8) > f.day) ym = shiftMonth(ym, 1);
+      for (; ; ym = shiftMonth(ym, 1)) {
+        const date = `${ym}-${pad(Math.min(f.day, daysIn(ym)))}`; // 31일 지정 → 짧은 달은 말일
+        if (date > today) break;
+        if (!posted[`${f.id}|${ym}`]) out.push({ f, ym, date });
+      }
+    }
+    return out;
+  }
+
+  const api = { dueFixed, pad, parse, fmt, daysIn, shiftMonth, won, inMonth, summary, allowance, ledger, addDays, mondayOf, monthly, weekly, wantsByCat, projection, START, splitPractice, yearMonths, WEEK_START };
   if (typeof module !== "undefined") module.exports = api; else root.FEE = api;
 })(this);
